@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using PromoCodeFactory.Core.Abstractions.Repositories;
 using PromoCodeFactory.Core.Domain.Administration;
 using PromoCodeFactory.WebHost.Models;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PromoCodeFactory.WebHost.Controllers
 {
@@ -26,7 +28,7 @@ namespace PromoCodeFactory.WebHost.Controllers
         /// <summary>
         /// Получить данные всех сотрудников
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Сотрудники</returns>
         [HttpGet]
         public async Task<List<EmployeeShortResponse>> GetEmployeesAsync()
         {
@@ -46,7 +48,7 @@ namespace PromoCodeFactory.WebHost.Controllers
         /// <summary>
         /// Получить данные сотрудника по Id
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Сотрудник</returns>
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<EmployeeResponse>> GetEmployeeByIdAsync(Guid id)
         {
@@ -69,6 +71,81 @@ namespace PromoCodeFactory.WebHost.Controllers
             };
 
             return employeeModel;
+        }
+
+        /// <summary>
+        /// Создать сотрудника
+        /// </summary>
+        /// <param name="employee"></param>
+        /// <returns>Созданный сотрудник</returns>
+        [HttpPost]
+        [ProducesResponseType(typeof(EmployeeShortResponse), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+        public async Task<ActionResult<EmployeeShortResponse>> Create(CreateEmployeeDto employee)
+        {
+            var newEmployee = new Employee
+            {
+                Id = Guid.NewGuid(),
+                FirstName = employee.FirstName,
+                LastName = employee.LastName,
+                Email = employee.Email
+            };
+
+            var result = await _employeeRepository.AddAsync(newEmployee);
+
+            var resultEmployee = new EmployeeShortResponse
+            {
+                Id = result.Id,
+                FullName = result.FullName,
+                Email = result.Email
+            };
+
+            return CreatedAtAction(nameof(Create), resultEmployee);
+        }
+
+        /// <summary>
+        /// Обновить сотрудника
+        /// </summary>
+        /// <param name="id">Идентификатор сотрудника</param>
+        /// <param name="employee">Данные для обновления</param>
+        /// <returns></returns>
+        [HttpPut("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> Update(Guid id, UpdateEmployeeDto employee)
+        {
+            var entity = new Employee
+            {
+                Id = id,
+                FirstName = employee.FirstName,
+                LastName = employee.LastName,
+                Email = employee.Email
+            };
+
+            var result = await _employeeRepository.UpdateAsync(entity);
+
+            if (result == null)
+                return NotFound();
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Удалить сотрудника
+        /// </summary>
+        /// <param name="id">Идентификатор сотрудника</param>
+        /// <returns></returns>
+        [HttpDelete]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> Delete(Guid id)
+        {
+            var result = await _employeeRepository.DeleteAsync(id);
+
+            if (result)
+                return NoContent();
+            
+            return NotFound();
         }
     }
 }
