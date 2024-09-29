@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using PromoCodeFactory.Core.Abstractions.Repositories;
-using PromoCodeFactory.Core.Domain.Administration;
+using PromoCodeFactory.Core.Services.Abstractions;
+using PromoCodeFactory.Core.Services.Contracts.Employee;
 using PromoCodeFactory.WebHost.Models;
 
 namespace PromoCodeFactory.WebHost.Controllers
@@ -17,59 +18,98 @@ namespace PromoCodeFactory.WebHost.Controllers
     public class EmployeesController
         : ControllerBase
     {
-        private readonly IRepository<Employee> _employeeRepository;
+        private readonly IMapper _mapper;
+        private IEmployeeService _employeeService;
 
-        public EmployeesController(IRepository<Employee> employeeRepository)
+        public EmployeesController(IMapper mapper, IEmployeeService employeeService)
         {
-            _employeeRepository = employeeRepository;
+            _mapper = mapper;
+            _employeeService = employeeService;
         }
 
         /// <summary>
-        /// Получить данные всех сотрудников
+        /// Получить данные всех сотрудников.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Сотрудники.</returns>
         [HttpGet]
-        public async Task<List<EmployeeShortResponse>> GetEmployeesAsync()
+        [ProducesResponseType(typeof(IReadOnlyCollection<EmployeeShortResponse>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IReadOnlyCollection<EmployeeShortResponse>>> GetEmployeesAsync()
         {
-            var employees = await _employeeRepository.GetAllAsync();
+            var employees = await _employeeService.GetAllAsync();
+            var result = _mapper.Map<IReadOnlyCollection<EmployeeShortResponse>>(employees);
 
-            var employeesModelList = employees.Select(x =>
-                new EmployeeShortResponse()
-                {
-                    Id = x.Id,
-                    Email = x.Email,
-                    FullName = x.FullName,
-                }).ToList();
-
-            return employeesModelList;
+            return Ok(result);
         }
 
         /// <summary>
-        /// Получить данные сотрудника по id
+        /// Получить данные сотрудника по его идентификатору.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Сотрудник.</returns>
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<EmployeeResponse>> GetEmployeeByIdAsync(Guid id)
+        [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<EmployeeResponse>> GetEmployeeAsync(Guid id)
         {
-            var employee = await _employeeRepository.GetByIdAsync(id);
+            var employee = await _employeeService.GetByIdAsync(id);
 
             if (employee == null)
                 return NotFound();
 
-            var employeeModel = new EmployeeResponse()
-            {
-                Id = employee.Id,
-                Email = employee.Email,
-                Role = new RoleItemResponse()
-                {
-                    Name = employee.Role.Name,
-                    Description = employee.Role.Description
-                },
-                FullName = employee.FullName,
-                AppliedPromocodesCount = employee.AppliedPromocodesCount
-            };
+            var result = _mapper.Map<EmployeeResponse>(employee);
 
-            return employeeModel;
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Создать сотрудника.
+        /// </summary>
+        /// <param name="request">Данные нового сотрудника.</param>
+        /// <returns>Созданный сотрудник.</returns>
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> CreateEmployeeAsync(CreateOrEditEmployeeRequest request)
+        {
+            var employee = _mapper.Map<EmployeeCreateOrEditDto>(request);
+            var id = await _employeeService.CreateAsync(employee);
+
+            return CreatedAtAction(nameof(GetEmployeeAsync), new { id }, null);
+        }
+
+        /// <summary>
+        /// Обновить данные сотрудника.
+        /// </summary>
+        /// <param name="id">Идентификатор сотрудника.</param>
+        /// <param name="request">Данные для обновления.</param>
+        [HttpPut("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateEmployeeAsync(Guid id, CreateOrEditEmployeeRequest request)
+        {
+            var data = _mapper.Map<EmployeeCreateOrEditDto>(request);
+            var result = await _employeeService.UpdateAsync(id, data);
+
+            if (result == null)
+                return NotFound();
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Удалить сотрудника.
+        /// </summary>
+        /// <param name="id">Идентификатор сотрудника.</param>
+        [HttpDelete]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteEmployeeAsync(Guid id)
+        {
+            var result = await _employeeService.DeleteAsync(id);
+
+            if (result)
+                return NoContent();
+
+            return NotFound();
         }
     }
 }

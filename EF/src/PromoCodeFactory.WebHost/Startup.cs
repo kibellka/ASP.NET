@@ -1,30 +1,47 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PromoCodeFactory.Core.Abstractions.Repositories;
-using PromoCodeFactory.Core.Domain.Administration;
-using PromoCodeFactory.Core.Domain.PromoCodeManagement;
-using PromoCodeFactory.DataAccess.Data;
+using PromoCodeFactory.Core.Services.Abstractions;
+using PromoCodeFactory.Core.Services.Implementations;
+using PromoCodeFactory.DataAccess;
 using PromoCodeFactory.DataAccess.Repositories;
 
 namespace PromoCodeFactory.WebHost
 {
-    public class Startup
+	public class Startup
     {
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers();
-            services.AddScoped(typeof(IRepository<Employee>), (x) =>
-                new InMemoryRepository<Employee>(FakeDataFactory.Employees));
-            services.AddScoped(typeof(IRepository<Role>), (x) =>
-                new InMemoryRepository<Role>(FakeDataFactory.Roles));
-            services.AddScoped(typeof(IRepository<Preference>), (x) =>
-                new InMemoryRepository<Preference>(FakeDataFactory.Preferences));
-            services.AddScoped(typeof(IRepository<Customer>), (x) =>
-                new InMemoryRepository<Customer>(FakeDataFactory.Customers));
+            services.AddAutoMapper(typeof(Startup));
+            //services.AddAutoMapper(cfg =>
+            //{
+            //	cfg.AddProfile<EmployeeProfile>();
+            //	cfg.AddProfile<RoleProfile>();
+            //	cfg.AddProfile<CustomerProfile>();
+            //	cfg.AddProfile<PreferenceProfile>();
+            //	cfg.AddProfile<PromoCodeProfile>();
+            //}, AppDomain.CurrentDomain.GetAssemblies());
+
+            services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
+
+            services.AddDbContext<DataContext>(optionsBuilder =>
+            {
+                optionsBuilder.UseSqlite("Filename=PromoCodeFactory.db")
+                .UseSnakeCaseNamingConvention()
+                .UseLazyLoadingProxies();
+            });
+
+            services.AddScoped<ICustomerService, CustomerService>();
+            services.AddScoped<IEmployeeService, EmployeeService>();
+            services.AddScoped<IPreferenceService, PreferenceService>();
+            services.AddScoped<IPromoCodeService, PromoCodeService>();
+
+            services.AddControllers().AddMvcOptions(x => x.SuppressAsyncSuffixInActionNames = false);
 
             services.AddOpenApiDocument(options =>
             {

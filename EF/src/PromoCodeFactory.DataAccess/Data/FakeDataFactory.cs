@@ -75,10 +75,12 @@ namespace PromoCodeFactory.DataAccess.Data
                     new Customer()
                     {
                         Id = customerId,
-                        Email = "ivan_sergeev@mail.ru",
-                        FirstName = "Иван",
+                        Email = "petr_petrov@mail.ru",
+                        FirstName = "Петр",
                         LastName = "Петров",
-                        //TODO: Добавить предзаполненный список предпочтений
+                        Preferences = Preferences.Where(p => (new List<string> { "Театр", "Семья" }).Contains(p.Name))
+                            .Select(p => new CustomerPreference{CustomerId = customerId, PreferenceId = p.Id })
+                            .ToList()
                     }
                 };
 
