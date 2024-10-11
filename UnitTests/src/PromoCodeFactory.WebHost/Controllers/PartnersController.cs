@@ -77,6 +77,9 @@ namespace PromoCodeFactory.WebHost.Controllers
         [HttpPost("{id}/limits")]
         public async Task<IActionResult> SetPartnerPromoCodeLimitAsync(Guid id, SetPartnerPromoCodeLimitRequest request)
         {
+            if (request.Limit <= 0)
+                return BadRequest("Лимит должен быть больше 0");
+
             var partner = await _partnersRepository.GetByIdAsync(id);
 
             if (partner == null)
@@ -85,9 +88,9 @@ namespace PromoCodeFactory.WebHost.Controllers
             //Если партнер заблокирован, то нужно выдать исключение
             if (!partner.IsActive)
                 return BadRequest("Данный партнер не активен");
-            
+
             //Установка лимита партнеру
-            var activeLimit = partner.PartnerLimits.FirstOrDefault(x => 
+            var activeLimit = partner.PartnerLimits?.FirstOrDefault(x => 
                 !x.CancelDate.HasValue);
             
             if (activeLimit != null)
@@ -101,9 +104,6 @@ namespace PromoCodeFactory.WebHost.Controllers
                 activeLimit.CancelDate = DateTime.Now;
             }
 
-            if (request.Limit <= 0)
-                return BadRequest("Лимит должен быть больше 0");
-            
             var newLimit = new PartnerPromoCodeLimit()
             {
                 Limit = request.Limit,
@@ -112,7 +112,10 @@ namespace PromoCodeFactory.WebHost.Controllers
                 CreateDate = DateTime.Now,
                 EndDate = request.EndDate
             };
-            
+
+            if (partner.PartnerLimits == null)
+                partner.PartnerLimits = new List<PartnerPromoCodeLimit>();
+
             partner.PartnerLimits.Add(newLimit);
 
             await _partnersRepository.UpdateAsync(partner);
