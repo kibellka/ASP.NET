@@ -2,13 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using PromoCodeFactory.Core.Abstractions.Repositories;
 using PromoCodeFactory.Core.Domain;
 
 namespace PromoCodeFactory.DataAccess.Repositories
 {
-    public class InMemoryRepository<T>
-        : IRepository<T>
+	public class InMemoryRepository<T>
+       //: IRepository<T>
         where T : BaseEntity
     {
         protected IEnumerable<T> Data { get; set; }
