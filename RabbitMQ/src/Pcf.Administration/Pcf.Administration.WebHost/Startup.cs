@@ -1,15 +1,22 @@
+using System;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Configuration;
-using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
-using Pcf.Administration.DataAccess;
-using Pcf.Administration.DataAccess.Repositories;
-using Pcf.Administration.DataAccess.Data;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Pcf.Administration.Core.Abstractions.Repositories;
-using System;
+using Pcf.Administration.Core.Abstractions.Services;
+using Pcf.Administration.DataAccess;
+using Pcf.Administration.DataAccess.Data;
+using Pcf.Administration.DataAccess.Repositories;
+using Pcf.Administration.Integration;
+using Pcf.Administration.WebHost.Workers;
+using Pcf.Rmq.Consumer;
+using RabbitMQ.Client;
 
 namespace Pcf.Administration.WebHost
 {
@@ -39,6 +46,31 @@ namespace Pcf.Administration.WebHost
             });
 
             AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+            services.Configure<RmqConsumerOptions>(Configuration.GetRequiredSection("RmqConsumer").Bind);
+            services.AddSingleton<IConnection>(sp =>
+            {
+                var options = sp.GetRequiredService<IOptions<RmqConsumerOptions>>().Value;
+
+                var logger = sp.GetRequiredService<ILogger<Startup>>();
+                logger.LogInformation($"RmqConsumerOptions: HostName = {options.HostName}; Port = {options.Port}; UserName = {options.UserName}; Password = {options.Password}; VirtualHost = {options.VirtualHost}; "
+                    + $"ExchangeName = {options.ExchangeName}, ExchangeType = {options.ExchangeType}");
+
+                var connectionFactory = new ConnectionFactory
+                {
+                    HostName = options.HostName,
+                    Port = options.Port,
+                    UserName = options.UserName,
+                    Password = options.Password,
+                    VirtualHost = options.VirtualHost,
+                };
+
+                return connectionFactory.CreateConnectionAsync().GetAwaiter().GetResult();
+            });
+            services.AddSingleton(typeof(IRmqConsumer<>), typeof(RmqConsumer<>));
+            services.AddScoped<IEmployeeService, EmployeeService>();
+
+            services.AddHostedService<AdministrationWorker>();
 
             services.AddOpenApiDocument(options =>
             {

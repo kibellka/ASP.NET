@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -9,6 +9,8 @@
     <ItemGroup>
       <ProjectReference Include="..\Pcf.Administration.Core\Pcf.Administration.Core.csproj" />
       <ProjectReference Include="..\Pcf.Administration.DataAccess\Pcf.Administration.DataAccess.csproj" />
+      <ProjectReference Include="..\Pcf.Administration.Integration\Pcf.Administration.Integration.csproj" />
+      <ProjectReference Include="..\Pcf.Rmq.Consumer\Pcf.Rmq.Consumer.csproj" />
     </ItemGroup>
 
     <ItemGroup>

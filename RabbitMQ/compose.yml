@@ -1,12 +1,25 @@
 services:
+  #Rabbit MQ
+  promocode-factory-rabbitmq:
+    image: rabbitmq:4.0-management
+    container_name: 'promocode-factory-rabbitmq'
+    tty: true
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5674:5672"
+      - "15674:15672"
+ 
   #Administration Db
   promocode-factory-administration-db:
     image: "postgres:latest"
     container_name: 'promocode-factory-administration-db'
-    restart: always 
+    restart: always
     ports:
       - 5433:5432
-    environment: 
+    environment:
       - POSTGRES_PASSWORD=docker
 
   #Administration Api
@@ -17,19 +30,20 @@ services:
     ports:
       - "8091:8080"
     environment:
-      - "ConnectionStrings:PromocodeFactoryAdministrationDb=Host=promocode-factory-administration-db;Database=promocode_factory_administration_db;Username=postgres;Password=docker"          
-    depends_on: 
+      - "ConnectionStrings:PromocodeFactoryAdministrationDb=Host=promocode-factory-administration-db;Database=promocode_factory_administration_db;Username=postgres;Password=docker"
+      - "RmqConsumer:HostName=host.docker.internal"
+    depends_on:
       - promocode-factory-administration-db
-
+      - promocode-factory-rabbitmq
 
   #ReceivingFromPartner Db
   promocode-factory-receiving-from-partner-db:
     image: "postgres:latest"
     container_name: 'promocode-factory-receiving-from-partner-db'
-    restart: always 
+    restart: always
     ports:
       - 5434:5432
-    environment: 
+    environment:
       - POSTGRES_PASSWORD=docker
 
   #ReceivingFromPartner Api
@@ -41,19 +55,20 @@ services:
       - "8092:8080"
     environment:
       - "ConnectionStrings:PromocodeFactoryReceivingFromPartnerDb=Host=promocode-factory-receiving-from-partner-db;Database=promocode_factory_receiving_from_partner_db;Username=postgres;Password=docker"
-      - "IntegrationSettings:GivingToCustomerApiUrl=http://promocode-factory-giving-to-customer-api"    
-      - "IntegrationSettings:AdministrationApiUrl=http://promocode-factory-administration-api"       
-    depends_on: 
+      - "IntegrationSettings:GivingToCustomerApiUrl=http://promocode-factory-giving-to-customer-api"
+      - "RmqProducer:HostName=host.docker.internal"
+    depends_on:
       - promocode-factory-receiving-from-partner-db
+      - promocode-factory-rabbitmq
   
   #GivingToCustomer Db
   promocode-factory-giving-to-customer-db:
     image: "postgres:latest"
     container_name: 'promocode-factory-giving-to-customer-db'
-    restart: always 
+    restart: always
     ports:
       - 5435:5432
-    environment: 
+    environment:
       - POSTGRES_PASSWORD=docker
 
   #GivingToCustomer Api
@@ -64,6 +79,6 @@ services:
     ports:
       - "8093:8080"
     environment:
-      - "ConnectionStrings:PromocodeFactoryGivingToCustomerDb=Host=promocode-factory-giving-to-customer-db;Database=promocode_factory_giving_to_customer_db;Username=postgres;Password=docker"          
+      - "ConnectionStrings:PromocodeFactoryGivingToCustomerDb=Host=promocode-factory-giving-to-customer-db;Database=promocode_factory_giving_to_customer_db;Username=postgres;Password=docker"
     depends_on: 
       - promocode-factory-giving-to-customer-db

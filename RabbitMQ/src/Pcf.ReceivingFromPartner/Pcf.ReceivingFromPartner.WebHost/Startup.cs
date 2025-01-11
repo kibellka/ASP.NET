@@ -1,17 +1,22 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Configuration;
-using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
-using Pcf.ReceivingFromPartner.Core.Abstractions.Repositories;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Pcf.ReceivingFromPartner.Core.Abstractions.Gateways;
+using Pcf.ReceivingFromPartner.Core.Abstractions.Repositories;
 using Pcf.ReceivingFromPartner.DataAccess;
-using Pcf.ReceivingFromPartner.DataAccess.Repositories;
 using Pcf.ReceivingFromPartner.DataAccess.Data;
+using Pcf.ReceivingFromPartner.DataAccess.Repositories;
 using Pcf.ReceivingFromPartner.Integration;
+using Pcf.Rmq.Producer;
+using RabbitMQ.Client;
 
 namespace Pcf.ReceivingFromPartner.WebHost
 {
@@ -38,11 +43,30 @@ namespace Pcf.ReceivingFromPartner.WebHost
             {
                 c.BaseAddress = new Uri(Configuration["IntegrationSettings:GivingToCustomerApiUrl"]);
             });
+            services.AddSingleton<IAdministrationGateway, AdministrationGateway>();
 
-            services.AddHttpClient<IAdministrationGateway, AdministrationGateway>(c =>
+            services.Configure<RmqProducerOptions>(Configuration.GetRequiredSection("RmqProducer").Bind);
+            services.AddSingleton<IConnection>(sp =>
             {
-                c.BaseAddress = new Uri(Configuration["IntegrationSettings:AdministrationApiUrl"]);
+                var options = sp.GetRequiredService<IOptions<RmqProducerOptions>>().Value;
+
+                var logger = sp.GetRequiredService<ILogger<Startup>>();
+                logger.LogInformation($"RmqProducerOptions: HostName = {options.HostName}; Port = {options.Port}; UserName = {options.UserName}; Password = {options.Password}; VirtualHost = {options.VirtualHost}; "
+                    + $"ExchangeName = {options.ExchangeName}, ExchangeType = {options.ExchangeType}");
+
+                var connectionFactory = new ConnectionFactory
+                {
+                    HostName = options.HostName,
+                    Port = options.Port,
+                    UserName = options.UserName,
+                    Password = options.Password,
+                    VirtualHost = options.VirtualHost,
+                };
+                //  connectionFactory.RequestedHeartbeat = TimeSpan.FromSeconds(60);
+
+                return connectionFactory.CreateConnectionAsync().GetAwaiter().GetResult();
             });
+            services.AddSingleton(typeof(IRmqProducer<>), typeof(RmqProducer<>));
 
             services.AddDbContext<DataContext>(x =>
             {
