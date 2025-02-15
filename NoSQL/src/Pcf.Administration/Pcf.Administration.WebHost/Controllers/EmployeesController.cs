@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Pcf.Administration.WebHost.Models;
+using MongoDB.Driver;
 using Pcf.Administration.Core.Abstractions.Repositories;
 using Pcf.Administration.Core.Domain.Administration;
+using Pcf.Administration.WebHost.Models;
 
 namespace Pcf.Administration.WebHost.Controllers
 {
@@ -14,48 +14,46 @@ namespace Pcf.Administration.WebHost.Controllers
     /// </summary>
     [ApiController]
     [Route("api/v1/[controller]")]
-    public class EmployeesController
+    public class EmployeesController(IRepository<Employee> employeeRepository, IRepository<Role> roleRepository)
         : ControllerBase
     {
-        private readonly IRepository<Employee> _employeeRepository;
+        private readonly IRepository<Employee> _employeeRepository = employeeRepository;
+        private readonly IRepository<Role> _roleRepository = roleRepository;
 
-        public EmployeesController(IRepository<Employee> employeeRepository)
-        {
-            _employeeRepository = employeeRepository;
-        }
-        
         /// <summary>
         /// Получить данные всех сотрудников
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public async Task<List<EmployeeShortResponse>> GetEmployeesAsync()
+        public async Task<IReadOnlyCollection<EmployeeShortResponse>> GetEmployeesAsync()
         {
             var employees = await _employeeRepository.GetAllAsync();
 
-            var employeesModelList = employees.Select(x => 
+            var employeesModelList = employees.Select(x =>
                 new EmployeeShortResponse()
-                    {
-                        Id = x.Id,
-                        Email = x.Email,
-                        FullName = x.FullName,
-                    }).ToList();
+                {
+                    Id = x.Id,
+                    Email = x.Email,
+                    FullName = x.FullName,
+                }).ToList();
 
             return employeesModelList;
         }
-        
+
         /// <summary>
         /// Получить данные сотрудника по id
         /// </summary>
-        /// <param name="id">Id сотрудника, например <example>451533d5-d8d5-4a11-9c7b-eb9f14e1a32f</example></param>
+        /// <param name="id">Id сотрудника, например <example>6769d295ba2b0e10036a1b6a</example></param>
         /// <returns></returns>
-        [HttpGet("{id:guid}")]
-        public async Task<ActionResult<EmployeeResponse>> GetEmployeeByIdAsync(Guid id)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<EmployeeResponse>> GetEmployeeByIdAsync(string id)
         {
             var employee = await _employeeRepository.GetByIdAsync(id);
 
             if (employee == null)
                 return NotFound();
+
+            var role = await _roleRepository.GetByIdAsync(employee.RoleId);
 
             var employeeModel = new EmployeeResponse()
             {
@@ -63,9 +61,9 @@ namespace Pcf.Administration.WebHost.Controllers
                 Email = employee.Email,
                 Role = new RoleItemResponse()
                 {
-                    Id = employee.Id,
-                    Name = employee.Role.Name,
-                    Description = employee.Role.Description
+                    Id = role.Id,
+                    Name = role.Name,
+                    Description = role.Description
                 },
                 FullName = employee.FullName,
                 AppliedPromocodesCount = employee.AppliedPromocodesCount
@@ -73,15 +71,15 @@ namespace Pcf.Administration.WebHost.Controllers
 
             return employeeModel;
         }
-        
+
         /// <summary>
         /// Обновить количество выданных промокодов
         /// </summary>
-        /// <param name="id">Id сотрудника, например <example>451533d5-d8d5-4a11-9c7b-eb9f14e1a32f</example></param>
+        /// <param name="id">Id сотрудника, например <example>6769d295ba2b0e10036a1b6a</example></param>
         /// <returns></returns>
-        [HttpPost("{id:guid}/appliedPromocodes")]
-        
-        public async Task<IActionResult> UpdateAppliedPromocodesAsync(Guid id)
+        [HttpPost("{id}/appliedPromocodes")]
+
+        public async Task<IActionResult> UpdateAppliedPromocodesAsync(string id)
         {
             var employee = await _employeeRepository.GetByIdAsync(id);
 
@@ -93,6 +91,20 @@ namespace Pcf.Administration.WebHost.Controllers
             await _employeeRepository.UpdateAsync(employee);
 
             return Ok();
+        }
+
+        [HttpDelete("{id}")]
+
+        public async Task<IActionResult> DeleteEmployeeAsync(string id)
+        {
+            var employee = await _employeeRepository.GetByIdAsync(id);
+
+            if (employee == null)
+                return NotFound();
+
+            await _employeeRepository.DeleteAsync(employee);
+
+            return NoContent();
         }
     }
 }

@@ -1,13 +1,20 @@
 services:
   #Administration Db
   promocode-factory-administration-db:
-    image: "postgres:latest"
+    image: "postgres:17.2"
     container_name: 'promocode-factory-administration-db'
     restart: always 
     ports:
       - 5433:5432
     environment: 
       - POSTGRES_PASSWORD=docker
+      
+  promocode-factory-administration-mongodb:
+    image: mongo:4.2.3
+    container_name: 'promocode-factory-administration-mongodb'
+    restart: always
+    ports:
+      - 27018:27017   
   #Administration Api
   promocode-factory-administration-api:
     build: src/Pcf.Administration/
@@ -22,7 +29,7 @@ services:
 
   #ReceivingFromPartner Db
   promocode-factory-receiving-from-partner-db:
-    image: "postgres:latest"
+    image: "postgres:17.2"
     container_name: 'promocode-factory-receiving-from-partner-db'
     restart: always 
     ports:
@@ -45,7 +52,7 @@ services:
   
   #GivingToCustomer Db
   promocode-factory-giving-to-customer-db:
-    image: "postgres:latest"
+    image: "postgres:17.2"
     container_name: 'promocode-factory-giving-to-customer-db'
     restart: always 
     ports:

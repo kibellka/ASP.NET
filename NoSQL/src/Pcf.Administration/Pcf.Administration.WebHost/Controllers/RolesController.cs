@@ -13,25 +13,21 @@ namespace Pcf.Administration.WebHost.Controllers
     /// </summary>
     [ApiController]
     [Route("api/v1/[controller]")]
-    public class RolesController
+    public class RolesController(IRepository<Role> roleRepository)
+        : ControllerBase
     {
-        private readonly IRepository<Role> _rolesRepository;
-
-        public RolesController(IRepository<Role> rolesRepository)
-        {
-            _rolesRepository = rolesRepository;
-        }
+        private readonly IRepository<Role> _roleRepository = roleRepository;
         
         /// <summary>
         /// Получить все доступные роли сотрудников
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public async Task<IEnumerable<RoleItemResponse>> GetRolesAsync()
+        public async Task<IReadOnlyCollection<RoleItemResponse>> GetRolesAsync()
         {
-            var roles = await _rolesRepository.GetAllAsync();
+            var roles = await _roleRepository.GetAllAsync();
 
-            var rolesModelList = roles.Select(x => 
+            var rolesModelList = roles.Select(x =>
                 new RoleItemResponse()
                 {
                     Id = x.Id,
