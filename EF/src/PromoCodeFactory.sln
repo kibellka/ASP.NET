@@ -9,6 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PromoCodeFactory.DataAccess
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PromoCodeFactory.Core", "PromoCodeFactory.Core\PromoCodeFactory.Core.csproj", "{FA64A24E-D404-4E7D-89A8-B87E134F697F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PromoCodeFactory.GrpcHost", "PromoCodeFactory.GrpcHost\PromoCodeFactory.GrpcHost.csproj", "{F1F288D5-30E4-4EA3-B034-BB6CAA4CB787}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PromoCodeFactory.BlazorClient", "PromoCodeFactory.BlazorClient\PromoCodeFactory.BlazorClient.csproj", "{8DEC4C8D-58FC-48F8-94A6-336367E01EEE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,8 +31,19 @@ Global
 		{FA64A24E-D404-4E7D-89A8-B87E134F697F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA64A24E-D404-4E7D-89A8-B87E134F697F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA64A24E-D404-4E7D-89A8-B87E134F697F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1F288D5-30E4-4EA3-B034-BB6CAA4CB787}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1F288D5-30E4-4EA3-B034-BB6CAA4CB787}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1F288D5-30E4-4EA3-B034-BB6CAA4CB787}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1F288D5-30E4-4EA3-B034-BB6CAA4CB787}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DEC4C8D-58FC-48F8-94A6-336367E01EEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DEC4C8D-58FC-48F8-94A6-336367E01EEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DEC4C8D-58FC-48F8-94A6-336367E01EEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DEC4C8D-58FC-48F8-94A6-336367E01EEE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1A0EE246-7824-4811-81A5-C7932F4227FA}
 	EndGlobalSection
 EndGlobal

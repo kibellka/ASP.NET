@@ -1,0 +1,252 @@
+﻿@* @page "/" *@
+@page "/customers"
+
+
+@using PromoCodeFactory.BlazorClient.Models;
+@using PromoCodeFactory.BlazorClient.Services
+@using Radzen;
+
+@inject DialogService DialogService;
+@inject ICustomerService _customerService;
+@inject NotificationService _notificationService;
+
+<h3>Клиенты</h3>
+
+<RadzenButton ButtonStyle="ButtonStyle.Info" Icon="add_circle_outline" class="mt-2 mb-4" Text="Новый клиент" Click="@InsertRow" Disabled=@(customerToInsert != null || customerToUpdate != null) />
+
+<div>
+    <RadzenDataGrid @ref="grid"
+                    Data="@Customers"
+                    TItem="Customer"
+                    IsLoading="@IsLoading"
+                    PagerHorizontalAlign="HorizontalAlign.Left"
+                    SelectionMode="DataGridSelectionMode.Single"
+                    EditMode="DataGridEditMode.Single"
+                    RowUpdate="@OnUpdateRow"
+                    RowCreate="@OnCreateRow"
+                    AllowPaging="true"
+                    PageSize="PageSize"
+                    ShowPagingSummary="true"
+                    AllowColumnResize="true"
+                    AllowSorting="true"
+                    AllowFiltering="true"
+                    FilterMode="FilterMode.Advanced"
+                    OrOperatorText="ИЛИ"
+                    AndOperatorText="И"
+                    EqualsText="Равно"
+                    NotEqualsText="Не равно"
+                    ContainsText="Содержит"
+                    ClearFilterText="Сброс"
+                    ApplyFilterText="ОК"
+                    FilterText="Фильтр"
+                    Sort="@Reset"
+                    Filter="@Reset"
+                    Page="@Reset">
+
+        <Columns>
+            <RadzenDataGridColumn Property="@nameof(Customer.Id)" Title="Id" Frozen="true" Width="50px"/>
+
+            <RadzenDataGridColumn Property="@nameof(Customer.Email)" Title="Почта" Width="90px">
+                <EditTemplate Context="customer">
+                    <RadzenTextBox @bind-Value="customer.Email" Style="width:100%; display: block" Name="@nameof(Customer.Email)" />
+                    <RadzenRequiredValidator Text="Укажите почту" Component="@nameof(Customer.Email)" Popup="true" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn Property="@nameof(Customer.FirstName)" Title="Имя" Width="90px">
+                <EditTemplate Context="customer">
+                    <RadzenTextBox @bind-Value="customer.FirstName" Style="width:100%; display: block" Name="@nameof(Customer.FirstName)" />
+                    <RadzenRequiredValidator Text="Укажите имя" Component="@nameof(Customer.FirstName)" Popup="true" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn Property="@nameof(Customer.LastName)" Title="Фамилия" Width="90px">
+                <EditTemplate Context="customer">
+                <RadzenTextBox @bind-Value="customer.LastName" Style="width:100%; display: block" Name="@nameof(Customer.LastName)" />
+                <RadzenRequiredValidator Text="Укажите фамилию" Component="@nameof(Customer.LastName)" Popup="true" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn Context="customer" Frozen="true" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="80px">
+                <Template Context="customer">
+                    <RadzenButton Icon="edit" Size="ButtonSize.Medium" Click="@(args => EditRow(customer))" />
+                    <RadzenButton Icon="delete" Size="ButtonSize.Medium" Click="@(args => DeleteRow(customer))" />
+                </Template>
+                <EditTemplate Context="customer">
+                    <RadzenButton Icon="check" Size="ButtonSize.Medium" Click="@((args) => SaveRow(customer))" />
+                    <RadzenButton Icon="close" Size="ButtonSize.Medium" Click="@((args) => CancelEdit(customer))" />
+                    <RadzenButton Icon="delete" Size="ButtonSize.Medium" Click="@(args => DeleteRow(customer))" />
+                </EditTemplate>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@code {
+    private bool IsLoading { get; set; } = false;
+    private ICollection<Customer> Customers { get; set; } = null!;
+    private ICollection<string> Roles { get; set; } = null!;
+    const int PageSize = 4;
+
+    RadzenDataGrid<Customer> grid = null!;
+    Customer? customerToUpdate;
+    Customer? customerToInsert;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            IsLoading = true;
+            StateHasChanged();
+
+            await LoadDataAsync();
+
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            Customers = await _customerService.GetAllCustomersAsync();
+        }
+        catch
+        {
+            ShowNotification("Ошибка при загрузке списка клиентов!", NotificationSeverity.Error);
+        }
+    }
+
+    private void Reset()
+    {
+        customerToInsert = null;
+        customerToUpdate = null;
+    }
+
+    private async Task EditRow(Customer customer)
+    {
+        customerToUpdate = new Customer()
+            {
+                Id = customer.Id,
+                FirstName = customer.FirstName,
+                LastName = customer.LastName,
+                Email = customer.Email
+            };
+
+        await grid.EditRow(customer);
+    }
+
+    private async Task DeleteRow(Customer customer)
+    {
+        try
+        {
+            var IsDel = await Confirm("Удалить запись?");
+            if (IsDel)
+            {
+                var id = await _customerService.DeleteCustomerAsync(customer.Id);
+
+                await LoadDataAsync();
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+            ShowNotification("Ошибка при удалении клиента!", NotificationSeverity.Error);
+        }
+
+        await grid.Reload();
+
+        Reset();
+    }
+
+    private void CancelEdit(Customer customer)
+    {
+        ReturnCustomer();
+        Reset();
+
+        grid.CancelEditRow(customer);
+    }
+
+    private async Task SaveRow(Customer customer)
+    {
+        await grid.UpdateRow(customer);
+    }
+
+    private async Task OnUpdateRow(Customer customer)
+    {
+        try
+        {
+            await _customerService.UpdateCustomerAsync(customer);
+        }
+        catch
+        {
+            ShowNotification("Ошибка при обновлении данных клиентов!", NotificationSeverity.Error);
+            ReturnCustomer();
+        }
+        Reset();
+
+        await grid.Reload();
+    }
+
+    private async Task InsertRow()
+    {
+        customerToInsert = new Customer()
+            {
+                Id = string.Empty
+            };
+
+        await grid.InsertRow(customerToInsert);
+    }
+
+    private async Task OnCreateRow(Customer customer)
+    {
+        try
+        {
+            await _customerService.CreateCustomerAsync(customer);
+            await LoadDataAsync();
+            StateHasChanged();
+        }
+        catch
+        {
+            ShowNotification("Ошибка при создании клиента!", NotificationSeverity.Error);
+        }
+
+        customerToInsert = null;
+
+        await grid.Reload();
+    }
+
+    private void ReturnCustomer()
+    {
+        if (customerToUpdate != null)
+        {
+            Customers.Where(p => p.Id == customerToUpdate.Id)
+                .ToList()
+                .ForEach(x =>
+                {
+                    x.FirstName = customerToUpdate.FirstName;
+                    x.LastName = customerToUpdate.LastName;
+                    x.Email = customerToUpdate.Email;
+                });
+        }
+    }
+
+    private async Task<bool> Confirm(string message)
+    {
+        var result = await DialogService.Confirm(message, "Внимание", new ConfirmOptions() { OkButtonText = "Да", CancelButtonText = "Нет" });
+
+        return result ?? false;
+    }
+
+    private void ShowNotification(string message, NotificationSeverity severity)
+    {
+        _notificationService.Notify(new NotificationMessage
+            {
+                Severity = severity,
+                Style = "position: absolute; inset-inline-start: -1000px;",
+                Summary = message,
+                Duration = 4000
+            });
+    }
+}
