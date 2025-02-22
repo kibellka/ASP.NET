@@ -129,9 +129,9 @@ namespace PromoCodeFactory.Core.Services.Implementations
 
             var preferences = await _preferenceRepository.GetByIdsAsync(dto.PreferenceIds);
 
-            customer.Email = customer.Email;
-            customer.FirstName = customer.FirstName;
-            customer.LastName = customer.LastName;
+            customer.Email = dto.Email;
+            customer.FirstName = dto.FirstName;
+            customer.LastName = dto.LastName;
             customer.Preferences.Clear();
             customer.Preferences = preferences.Select(x => new CustomerPreference()
                 {

@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+option csharp_namespace = "GrpcService.Client";
+
+package GrpcService;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+service Customers
+{
+	rpc GetCustomers(google.protobuf.Empty) returns (CustomerListResponse);
+	rpc GetCustomer(GetCustomerRequest) returns (CustomerResponse);
+	rpc CreateCustomer(CreateCustomerRequest) returns (CreateCustomerResponse);
+	rpc UpdateCustomer(UpdateCustomerRequest) returns (CustomerShortResponse);
+	rpc DeleteCustomer(DeleteCustomerRequest) returns (DeleteCustomerResponse);
+}
+
+message GetCustomerRequest
+{
+	string id = 1;
+}
+
+message CreateCustomerRequest
+{
+	string firstName = 1;
+	string lastName = 2;
+	string email = 3;
+}
+
+message CreateCustomerResponse
+{
+	string id = 1;
+}
+
+message UpdateCustomerRequest
+{
+	string id = 1;
+	string firstName = 2;
+	string lastName = 3;
+	string email = 4;
+}
+
+message DeleteCustomerRequest
+{
+	string id = 1;
+}
+
+message DeleteCustomerResponse
+{
+	string id = 1;
+}
+
+message CustomerListResponse
+{
+	repeated CustomerShortResponse customers = 1;
+}
+ 
+message CustomerShortResponse
+{
+	string id = 1;
+	string firstName = 2;
+	string lastName = 3;
+	string email = 4;
+}
+
+message CustomerResponse
+{
+	string id = 1;
+	string firstName = 2;
+	string lastName = 3;
+	string email = 4;
+	repeated CustomerPreference preferences = 5;
+	repeated CustomerPromoCode promoCodes = 6;
+}
+
+message CustomerPreference
+{
+	string id = 1;
+	string name = 2;
+}
+
+message CustomerPromoCode
+{
+	string id = 1;
+	string code = 2;
+	string serviceInfo = 3;
+	google.protobuf.Timestamp beginDate = 4;
+	google.protobuf.Timestamp endDate = 5;
+	string partnerName = 6;
+}
