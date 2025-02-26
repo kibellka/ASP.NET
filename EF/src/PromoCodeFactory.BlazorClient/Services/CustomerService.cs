@@ -5,15 +5,20 @@ using Google.Protobuf.WellKnownTypes;
 
 namespace PromoCodeFactory.BlazorClient.Services
 {
-    public class CustomerService(GrpcChannel channel) : ICustomerService
+    public class CustomerService : ICustomerService
     {
-        GrpcChannel _channel = channel;
+        private readonly GrpcChannel _channel;
+        private readonly Customers.CustomersClient _client;
+
+        public CustomerService(GrpcChannel channel)
+        {
+            _channel = channel;
+            _client = new Customers.CustomersClient(_channel);
+        }
 
         public async Task<ICollection<Customer>> GetAllCustomersAsync()
         {
-            var client = new Customers.CustomersClient(_channel);
-
-            var response = await client.GetCustomersAsync(new Empty());
+            var response = await _client.GetCustomersAsync(new Empty());
 
             var result = response.Customers.Select(c => new Customer
                 {
@@ -29,8 +34,6 @@ namespace PromoCodeFactory.BlazorClient.Services
 
         public async Task<string> CreateCustomerAsync(Customer customer)
         {
-            var client = new Customers.CustomersClient(_channel);
-
             var request = new CreateCustomerRequest
             {
                 FirstName = customer.FirstName ?? string.Empty,
@@ -38,15 +41,13 @@ namespace PromoCodeFactory.BlazorClient.Services
                 Email = customer.Email ?? string.Empty
             };
 
-            var response = await client.CreateCustomerAsync(request);
+            var response = await _client.CreateCustomerAsync(request);
 
             return response.Id;
         }
 
         public async Task<string> UpdateCustomerAsync(Customer customer)
         {
-            var client = new Customers.CustomersClient(_channel);
-
             var request = new UpdateCustomerRequest
             {
                 Id = customer.Id,
@@ -55,21 +56,19 @@ namespace PromoCodeFactory.BlazorClient.Services
                 Email = customer.Email ?? string.Empty
             };
 
-            var response = await client.UpdateCustomerAsync(request);
+            var response = await _client.UpdateCustomerAsync(request);
 
             return response.Id;
         }
 
         public async Task<string> DeleteCustomerAsync(string id)
         {
-            var client = new Customers.CustomersClient(_channel);
-
             var request = new DeleteCustomerRequest
             {
                 Id = id
             };
 
-            var response = await client.DeleteCustomerAsync(request);
+            var response = await _client.DeleteCustomerAsync(request);
 
             return response.Id;
         }
